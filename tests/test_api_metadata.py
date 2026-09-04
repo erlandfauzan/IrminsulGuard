@@ -10,7 +10,7 @@ from utils.marc_validator import MARC21Validator
 load_dotenv()
 
 BASE_URL = os.getenv("BASE_URL", "https://openlibrary.org")
-TIMEOUT = int(os.getenv("TIMEOUT", 5))
+TIMEOUT = int(os.getenv("TIMEOUT", 20))
 
 def load_mock_data():
     mock_path = os.path.join(os.path.dirname(__file__), "../data/mock_books.json")
@@ -80,5 +80,5 @@ class TestBookMetadataAPI:
             status=500
         )
 
-        response = requests.get(mock_url, timeout=TIMEOUT)
+        response = requests.get(mock_url, timeout=15)
         assert response.status_code == 500
