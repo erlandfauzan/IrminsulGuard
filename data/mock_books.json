@@ -1,0 +1,29 @@
+[
+  {
+    "isbn": "9780132350884",
+    "title": "Clean Code: A Handbook of Agile Software Craftsmanship",
+    "author": "Robert C. Martin",
+    "publisher": "Prentice Hall",
+    "year": 2008,
+    "ddc": "005.1",
+    "status": "available"
+  },
+  {
+    "isbn": "9780201616224",
+    "title": "The Pragmatic Programmer: From Journeyman to Master",
+    "author": "Andrew Hunt, David Thomas",
+    "publisher": "Addison-Wesley",
+    "year": 1999,
+    "ddc": "005.1",
+    "status": "borrowed"
+  },
+  {
+    "isbn": "9780596007126",
+    "title": "Head First Design Patterns",
+    "author": "Eric Freeman, Elisabeth Robson",
+    "publisher": "O'Reilly Media",
+    "year": 2004,
+    "ddc": "005.133",
+    "status": "available"
+  }
+]

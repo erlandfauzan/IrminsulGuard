@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  irminsul-guard-tests:
+    build: .
+    container_name: irminsul_guard_qa
+    volumes:
+      - .:/app
+    environment:
+      - BASE_URL=https://openlibrary.org
+      - TIMEOUT=5
