@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IrminsulGuard | Enterprise QA Automation Control</title>
+    <style>
+        /* ==========================================================================
+           1. CORE DESIGN SYSTEM & CSS VARIABLES
+           ========================================================================== */
+        :root {
+            --brand-primary: #ff7eb3;
+            --brand-secondary: #ff758c;
+            --brand-accent: #4af626;
+            --brand-info: #3b82f6;
+            --brand-warning: #f59e0b;
+            
+            --bg-base: #0f172a;
+            --bg-dark: rgba(10, 14, 23, 0.92);
+            --bg-panel: rgba(20, 25, 35, 0.65);
+            --bg-card: rgba(0, 0, 0, 0.4);
+            
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+            --glass-hover: rgba(255, 126, 179, 0.1);
+            
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            
+            --transition-fast: all 0.2s ease;
+            --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==========================================================================
+           2. GLOBAL RESET & BASE STYLES
+           ========================================================================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-sans); color: var(--text-main);
+            background: var(--bg-base) url('image_c23bcc.jpg') no-repeat center center fixed;
+            background-size: cover; height: 100vh; overflow: hidden; display: flex;
+        }
+        body::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.75) 100%);
+            z-index: -1; backdrop-filter: blur(14px);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--brand-primary); }
+
+        h1, h2, h3 { color: #fff; margin-bottom: 15px; font-weight: 600; }
+        p, li { line-height: 1.7; color: var(--text-muted); margin-bottom: 12px; }
+        strong { color: #e2e8f0; font-weight: 600; }
+        code { background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); color: var(--brand-accent); font-size: 13px; border: 1px solid var(--glass-border); }
+        ul { padding-left: 20px; }
+
+        /* ==========================================================================
+           3. SPLASH SCREEN (LANDING)
+           ========================================================================== */
+        .splash-screen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: url('image_c23bcc.jpg') no-repeat center center; background-size: cover;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 1s ease-out, visibility 1s ease-out;
+        }
+        .splash-screen::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle, rgba(15,23,42,0.4) 0%, rgba(15,23,42,0.98) 100%);
+        }
+        .splash-content {
+            position: relative; z-index: 10000; text-align: center;
+            background: rgba(10, 14, 23, 0.7); padding: 60px 80px; border-radius: 24px;
+            border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+            box-shadow: 0 0 60px rgba(255, 126, 179, 0.15);
+            transform: translateY(0); transition: transform 0.8s ease;
+        }
+        .splash-screen.hidden { opacity: 0; visibility: hidden; }
+        .splash-screen.hidden .splash-content { transform: translateY(-30px); }
+        
+        .splash-title {
+            font-size: 52px; font-weight: 800; margin-bottom: 10px;
+            background: linear-gradient(to right, #ffffff, var(--brand-primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px;
+        }
+        .splash-subtitle { color: var(--brand-accent); font-family: var(--font-mono); font-size: 16px; margin-bottom: 40px; }
+
+        /* Buttons */
+        .btn {
+            background: var(--brand-primary); color: #fff; border: none; padding: 14px 28px;
+            font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: var(--transition-fast);
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 15px rgba(255,126,179,0.3);
+        }
+        .btn:hover { background: var(--brand-secondary); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,126,179,0.5); }
+        .btn-outline { background: transparent; border: 1px solid var(--glass-border); color: #fff; box-shadow: none; }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: #fff; transform: none; box-shadow: none; }
+        .btn-blue { background: var(--brand-info); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+        .btn-blue:hover { background: #2563eb; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5); }
+
+        /* ==========================================================================
+           4. LAYOUT & SIDEBAR NAVIGATION
+           ========================================================================== */
+        .app-layout { display: flex; width: 100%; height: 100%; opacity: 0; transition: opacity 1s ease 0.5s; }
+        .app-layout.visible { opacity: 1; }
+        
+        .sidebar {
+            width: 280px; background: var(--bg-dark); border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; backdrop-filter: blur(20px);
+            box-shadow: 5px 0 30px rgba(0,0,0,0.5); z-index: 10; flex-shrink: 0;
+        }
+        .brand-header { padding: 30px 24px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 12px; }
+        .brand-logo svg { width: 32px; height: 32px; fill: url(#grad1); filter: drop-shadow(0 0 8px var(--brand-primary)); }
+        .brand-title { font-size: 20px; font-weight: 700; background: linear-gradient(to right, var(--brand-primary), var(--brand-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .nav-menu { padding: 20px 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+        .nav-item {
+            display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+            border-radius: 12px; cursor: pointer; color: var(--text-muted);
+            transition: var(--transition-fast); font-size: 14px; font-weight: 500; border: 1px solid transparent;
+        }
+        .nav-item svg { width: 18px; height: 18px; fill: currentColor; transition: var(--transition-fast); }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-main); }
+        .nav-item.active {
+            background: linear-gradient(90deg, var(--glass-hover) 0%, transparent 100%);
+            color: var(--brand-primary); border-left: 3px solid var(--brand-primary);
+        }
+        .nav-item.active svg { fill: var(--brand-primary); filter: drop-shadow(0 0 5px var(--brand-primary)); }
+
+        .system-status { padding: 20px; border-top: 1px solid var(--glass-border); font-size: 12px; display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
+        .status-dot { width: 8px; height: 8px; background: var(--brand-accent); border-radius: 50%; box-shadow: 0 0 10px var(--brand-accent); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+
+        /* ==========================================================================
+           5. MAIN WORKSPACE & GLASS PANELS
+           ========================================================================== */
+        .workspace { flex: 1; position: relative; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
+        .view-section { display: none; opacity: 0; transform: translateY(20px); max-width: 1200px; margin: 0 auto; }
+        .view-section.active-view { display: block; animation: viewEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes viewEnter { to { opacity: 1; transform: translateY(0); } }
+
+        .glass-panel {
+            background: var(--bg-panel); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 35px; backdrop-filter: blur(16px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3), inset 0 1px 0 var(--glass-highlight);
+            margin-bottom: 30px; transition: var(--transition-smooth);
+        }
+        .panel-header { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+
+        /* ==========================================================================
+           6. ARCHITECTURE & REPO UI
+           ========================================================================== */
+        .impact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .check-list li { position: relative; padding-left: 25px; list-style: none; }
+        .check-list li::before { content: '✔'; position: absolute; left: 0; color: var(--brand-accent); font-weight: bold; }
+        .cross-list li { position: relative; padding-left: 25px; list-style: none; }
+        .cross-list li::before { content: '■'; position: absolute; left: 0; color: var(--brand-primary); }
+
+        .repo-tree { font-family: var(--font-mono); font-size: 14px; line-height: 2.2; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border: 1px solid var(--glass-border); }
+        .folder { color: var(--brand-info); font-weight: bold; }
+        .file { color: var(--text-main); }
+        .desc { color: var(--text-muted); font-size: 12px; margin-left: 10px; font-family: var(--font-sans); }
+
+        /* Pure CSS Architecture Flow Diagram */
+        .flow-diagram { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 10px; font-family: var(--font-sans); }
+        .flow-layer { background: rgba(234, 179, 8, 0.03); border: 1px dashed rgba(234, 179, 8, 0.3); border-radius: 12px; padding: 30px 20px 20px; width: 100%; max-width: 650px; position: relative; margin-bottom: 20px; }
+        .flow-layer::before { content: attr(data-name); position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid rgba(234, 179, 8, 0.5); color: #fde047; padding: 4px 16px; font-size: 13px; font-weight: 600; border-radius: 20px; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .flow-row { display: flex; justify-content: center; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+        .flow-col { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        .flow-node { background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)); border: 1px solid rgba(129, 140, 248, 0.4); border-radius: 8px; padding: 12px 20px; color: #e0e7ff; min-width: 220px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: var(--transition-fast); }
+        .flow-node strong { display: block; font-size: 14px; margin-bottom: 4px; color: #fff; }
+        .flow-node span { font-size: 12px; color: #a5b4fc; font-family: var(--font-mono); }
+        .flow-arrow-down { height: 25px; width: 2px; background: rgba(255,255,255,0.2); position: relative; margin: -10px auto 10px; }
+        .flow-arrow-down::after { content: ''; position: absolute; bottom: 0; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid rgba(255,255,255,0.2); }
+
+        /* ==========================================================================
+           7. DYNAMIC OPAC CATALOG (GRID & LIST)
+           ========================================================================== */
+        .catalog-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--glass-border); }
+        .catalog-stats { font-size: 14px; color: var(--text-muted); }
+        .view-controls { display: flex; gap: 10px; }
+        .ctrl-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition-fast); }
+        .ctrl-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .ctrl-btn.active { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; }
+
+        /* Grid View */
+        .catalog-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; transition: var(--transition-smooth); }
+        .book-card { background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 15px; text-align: center; transition: var(--transition-fast); display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; overflow: hidden; }
+        .book-card:hover { transform: translateY(-5px); border-color: var(--brand-primary); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .book-cover { width: 120px; height: 170px; border-radius: 6px; box-shadow: 3px 3px 15px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; text-align: center; margin-bottom: 15px; transition: var(--transition-fast); overflow: hidden; position: relative; background-size: cover !important; background-position: center !important; }
+        .book-card:hover .book-cover { transform: scale(1.05); }
+        .book-title { font-size: 14px; color: #fff; font-weight: 600; margin-bottom: 5px; line-height: 1.3; }
+        .book-author { font-size: 12px; color: var(--text-muted); }
+        .book-ddc { margin-top: auto; padding-top: 15px; font-size: 11px; font-family: var(--font-mono); color: var(--brand-accent); }
+
+        /* List View Modifier */
+        .catalog-container.list-view { grid-template-columns: 1fr; gap: 15px; }
+        .catalog-container.list-view .book-card { flex-direction: row; text-align: left; padding: 15px 25px; align-items: center; gap: 25px; }
+        .catalog-container.list-view .book-cover { width: 60px; height: 85px; margin-bottom: 0; font-size: 9px; }
+        .catalog-container.list-view .book-ddc { margin-top: 0; margin-left: auto; padding-top: 0; }
+
+        /* ==========================================================================
+           8. OPENLIBRARY-STYLE BOOK DETAIL VIEW
+           ========================================================================== */
+        #view-book-detail { display: none; }
+        #view-book-detail.active-view { display: block; animation: viewEnter 0.4s ease forwards; }
+        
+        .detail-wrapper { display: flex; gap: 40px; margin-top: 20px; align-items: flex-start; }
+        .detail-left { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+        .detail-cover { width: 100%; height: 380px; border-radius: 8px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; text-align: center; border: 1px solid var(--glass-border); background-size: cover !important; background-position: center !important; overflow: hidden; }
+        
+        .detail-right { flex: 1; }
+        .detail-title { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+        .detail-author { font-size: 18px; color: var(--text-muted); margin-bottom: 15px; }
+        .detail-rating { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--brand-warning); margin-bottom: 25px; }
+        
+        .detail-desc { font-size: 15px; line-height: 1.8; color: #cbd5e1; margin-bottom: 30px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border-left: 4px solid var(--brand-primary); }
+        .detail-desc-ru { margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.15); color: #94a3b8; font-style: italic; }
+        
+        .detail-meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); padding: 25px 0; margin-bottom: 30px; text-align: center; }
+        .meta-box span { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .meta-box strong { font-size: 15px; color: #fff; }
+        
+        .detail-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 20px; font-size: 12px; color: var(--text-muted); }
+
+        /* ==========================================================================
+           9. TERMINAL SYSTEM
+           ========================================================================== */
+        .terminal-wrapper { border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid rgba(74, 246, 38, 0.2); }
+        .terminal-header { background: #1e1e1e; padding: 12px 15px; display: flex; gap: 8px; border-bottom: 1px solid #333; align-items: center; }
+        .term-btn { width: 12px; height: 12px; border-radius: 50%; }
+        .term-close { background: #ff5f56; } .term-min { background: #ffbd2e; } .term-max { background: #27c93f; }
+        .terminal-body { background: #0a0a0a; padding: 25px; height: 480px; overflow-y: auto; font-family: var(--font-mono); font-size: 14px; line-height: 1.7; color: #8b949e; }
+        
+        .log-sys { color: var(--brand-primary); } .log-info { color: var(--brand-info); } .log-ok { color: var(--brand-accent); font-weight: bold; } .log-cmd { color: #fff; font-weight: bold; }
+        .type-cursor { display: inline-block; width: 8px; height: 15px; background: var(--brand-accent); animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 5px; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- SVG ICON SPRITES -->
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:var(--brand-primary);stop-opacity:1" />
+                <stop offset="100%" style="stop-color:var(--brand-secondary);stop-opacity:1" />
+            </linearGradient>
+            <g id="i-dash"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></g>
+            <g id="i-lore"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+            <g id="i-arch"><path d="M22 12h-4l-3 9L9 3l-3 9H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+            <g id="i-repo"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+            <g id="i-book"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+            <g id="i-term"><polyline points="4 17 10 11 4 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="19" x2="20" y2="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+            <g id="i-grid"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></g>
+            <g id="i-list"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></g>
+            <g id="i-back"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+        </defs>
+    </svg>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <h1 class="splash-title">IrminsulGuard</h1>
+            <p class="splash-subtitle">Establishing connection to the Ley Lines...</p>
+            <button class="btn" id="enterSystemBtn" style="font-size: 16px; padding: 16px 36px;">Access Secure Terminal</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP LAYOUT -->
+    <div class="app-layout" id="appLayout">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <div class="brand-logo"><svg viewBox="0 0 24 24"><use href="#i-lore"></use></svg></div>
+                <div class="brand-title">IrminsulGuard</div>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="nav-item active" data-target="view-overview">
+                    <svg viewBox="0 0 24 24"><use href="#i-dash"></use></svg> Overview & Lore
+                </div>
+                <div class="nav-item" data-target="view-arch">
+                    <svg viewBox="0 0 24 24"><use href="#i-arch"></use></svg> QA Architecture
+                </div>
+                <div class="nav-item" data-target="view-repo">
+                    <svg viewBox="0 0 24 24"><use href="#i-repo"></use></svg> Repository Structure
+                </div>
+                <div class="nav-item" data-target="view-catalog" id="navCatalogBtn">
+                    <svg viewBox="0 0 24 24"><use href="#i-book"></use></svg> Live OPAC Catalog
+                </div>
+                <div class="nav-item" data-target="view-terminal">
+                    <svg viewBox="0 0 24 24"><use href="#i-term"></use></svg> System Diagnostics
+                </div>
+            </nav>
+            <div class="system-status"><div class="status-dot"></div> Система активна</div>
+        </aside>
+
+        <!-- MAIN WORKSPACE -->
+        <main class="workspace">
+            
+            <!-- VIEW 1: OVERVIEW & LORE -->
+            <section id="view-overview" class="view-section active-view">
+                <div class="glass-panel">
+                    <h2 class="panel-header">Origin & Naming Lore</h2>
+                    <p>In the lore of <em>Genshin Impact</em>, <strong>Irminsul</strong> is a majestic silver-white tree connected to all ley lines in Teyvat. It acts as a universal knowledge repository recording every piece of history, memory, and information. However, corrupted records within Irminsul can alter knowledge and destabilize reality.</p>
+                    <p><strong>IrminsulGuard</strong> draws inspiration from this concept. Designed for digital library ecosystems, it serves as a QA automation sentinel that validates bibliographic catalog metadata and ensures API endpoint reliability. By catching invalid ISBNs, bad DDC formatting, and API anomalies, IrminsulGuard maintains the integrity of modern library knowledge systems.</p>
+                </div>
+                <div class="glass-panel impact-grid">
+                    <div>
+                        <h2 class="panel-header" style="font-size: 20px;">Problem Statement & Impact</h2>
+                        <ul class="cross-list">
+                            <li><strong>Human Error in Data Entry:</strong> Librarians face human fatigue, leading to mistyped ISBNs, missing digits, or malformed DDC codes.</li>
+                            <li><strong>Corrupted Search & Discovery:</strong> Invalid metadata disrupts indexing. A single wrong character makes a book "invisible".</li>
+                            <li><strong>Unreliable Third-Party Integrations:</strong> Unhandled API timeouts from external providers can crash local interfaces.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="panel-header" style="font-size: 20px;">How IrminsulGuard Solves This</h2>
+                        <ul class="check-list">
+                            <li><strong>Automated Metadata Audit:</strong> Replaces manual checking by instantly validating data against international MARC21 and DDC standards.</li>
+                            <li><strong>Resilient API Monitoring:</strong> Ensures external catalog API failures or network latency are handled gracefully.</li>
+                            <li><strong>Time Efficiency:</strong> Reduces the manual audit workload for cataloging librarians.</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 2: ARCHITECTURE & FEATURES -->
+            <section id="view-arch" class="view-section">
+                <div class="glass-panel">
+                    <h2 class="panel-header">Key Features</h2>
+                    <ul class="check-list">
+                        <li><strong>Bibliographic Metadata Integrity:</strong> Dedicated regex validator (<code>MARC21Validator</code>) enforcing international library standards.</li>
+                        <li><strong>Hermetic API Testing & Mocking:</strong> Open Library REST API integration tests with isolated offline network mocking (<code>responses</code>).</li>
+                        <li><strong>Parallel Test Execution:</strong> Optimized multi-threaded test runner powered by <code>pytest-xdist</code> to accelerate execution.</li>
+                        <li><strong>Containerized Environment:</strong> Fully dockerized setup using <code>Dockerfile</code> and <code>docker-compose.yml</code>.</li>
+                        <li><strong>Automated CI/CD:</strong> Integrated GitHub Actions workflow executing suites automatically on every <code>push</code>.</li>
+                    </ul>
+                </div>
+                <div class="glass-panel">
+                    <h2 class="panel-header" style="justify-content: center;">End-to-End Test Flow Diagram</h2>
+                    
+                    <!-- PURE CSS ARCHITECTURE FLOW DIAGRAM -->
+                    <div class="flow-diagram">
+                        <div class="flow-layer" data-name="Data Layer">
+                            <div class="flow-row">
+                                <div class="flow-node"><strong>JSON Mock Data</strong><span>data/mock_books.json</span></div>
+                                <div class="flow-node"><strong>Config Files</strong><span>config/</span></div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow-down"></div>
+
+                        <div class="flow-layer" data-name="Execution Layer">
+                            <div class="flow-node" style="margin: 0 auto;"><strong>Pytest Test Runner</strong><span></span></div>
+                        </div>
+                        <div class="flow-arrow-down"></div>
+
+                        <div class="flow-layer" data-name="Validation Engine & Page Objects">
+                            <div class="flow-row">
+                                <div class="flow-col">
+                                    <div class="flow-node" style="margin-top: 55px;"><strong>MARC21Validator Module</strong><span>utils/marc_validator.py</span></div>
+                                </div>
+                                <div class="flow-col">
+                                    <div class="flow-node"><strong>Requests HTTP Client</strong><span></span></div>
+                                    <div class="flow-arrow-down" style="height:15px; margin:0;"></div>
+                                    <div class="flow-node"><strong>Page Object Model</strong><span>pages/</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow-down"></div>
+
+                        <div class="flow-layer" data-name="Test Scenarios">
+                            <div class="flow-row">
+                                <div class="flow-node"><strong>API Metadata Tests</strong><span>tests/test_api_metadata.py</span></div>
+                                <div class="flow-node"><strong>UI Search Automation</strong><span>tests/test_ui_search.py</span></div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow-down"></div>
+
+                        <div class="flow-layer" data-name="Reporting & CI/CD">
+                            <div class="flow-col">
+                                <div class="flow-node"><strong>Console Test Logs</strong><span></span></div>
+                                <div class="flow-arrow-down" style="height:15px; margin:0;"></div>
+                                <div class="flow-node"><strong>Pytest HTML Report</strong><span>report.html</span></div>
+                                <div class="flow-arrow-down" style="height:15px; margin:0;"></div>
+                                <div class="flow-node"><strong>GitHub Actions Pipeline</strong><span>.github/workflows/</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 3: REPOSITORY -->
+            <section id="view-repo" class="view-section">
+                <div class="glass-panel">
+                    <h2 class="panel-header">Repository Structure</h2>
+                    <div class="repo-tree">
+                        <div><span class="folder">.github/workflows/</span><span class="file">test-pipeline.yml</span> <span class="desc">- GitHub Actions CI/CD Pipeline</span></div>
+                        <div><span class="folder">assets/</span> <span class="desc">- HTML Report & Terminal Execution Screenshots</span></div>
+                        <div><span class="folder">config/</span> <span class="desc">- Configuration Directory</span></div>
+                        <div><span class="folder">data/</span><span class="file">mock_books.json</span> <span class="desc">- Mock Bibliographic Dataset</span></div>
+                        <div><span class="folder">pages/</span> <span class="desc">- Page Object Model (POM) Modules</span></div>
+                        <div><span class="folder">tests/</span><span class="file">test_api_metadata.py</span> <span class="desc">- Pytest Integration & Hermetic API Mocking</span></div>
+                        <div><span class="folder">tests/</span><span class="file">test_ui_search.py</span> <span class="desc">- Library Catalog UI Search Automation</span></div>
+                        <div><span class="folder">utils/</span><span class="file">marc_validator.py</span> <span class="desc">- Custom MARC21 & DDC Validator</span></div>
+                        <div><span class="file">.env</span> <span class="desc">- Local Environment Variables</span></div>
+                        <div><span class="file">.gitignore</span> <span class="desc">- Git Exclusion File</span></div>
+                        <div><span class="file">CONTRIBUTING.md</span> <span class="desc">- Contribution Guidelines</span></div>
+                        <div><span class="file">docker-compose.yml</span> <span class="desc">- Docker Compose Orchestration</span></div>
+                        <div><span class="file">Dockerfile</span> <span class="desc">- Containerization Configuration</span></div>
+                        <div><span class="file">LICENSE</span> <span class="desc">- MIT Open Source License</span></div>
+                        <div><span class="file">pytest.ini</span> <span class="desc">- Pytest Configuration & Parallel Settings</span></div>
+                        <div><span class="file">README.md</span> <span class="desc">- Project Documentation</span></div>
+                        <div><span class="file">report.html</span> <span class="desc">- Generated Test Report</span></div>
+                        <div><span class="file">requirements.txt</span> <span class="desc">- Project Dependencies</span></div>
+                        <div><span class="file">TEST_PLAN.md</span> <span class="desc">- Comprehensive QA Test Strategy Document</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 4: CATALOG LISTING -->
+            <section id="view-catalog" class="view-section">
+                <div class="glass-panel" style="padding: 25px;">
+                    <div class="catalog-toolbar">
+                        <div class="catalog-stats">
+                            <strong>Live OPAC Catalog</strong> — Displaying 50 Validated Records
+                        </div>
+                        <div class="view-controls">
+                            <button class="ctrl-btn active" id="btnGrid" title="Grid View">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-grid"></use></svg>
+                            </button>
+                            <button class="ctrl-btn" id="btnList" title="List View">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-list"></use></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="catalog-container" id="catalogGrid">
+                        <!-- JS Dynamically Injects 50 Books Here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 4.1: BOOK DETAIL (OPEN LIBRARY STYLE) -->
+            <section id="view-book-detail" class="view-section">
+                <div class="glass-panel">
+                    <button class="btn btn-outline" id="backToCatalogBtn" style="margin-bottom: 20px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><use href="#i-back"></use></svg> Back to Catalog
+                    </button>
+                    
+                    <div class="detail-wrapper">
+                        <!-- Left: Cover & Actions -->
+                        <div class="detail-left">
+                            <div class="detail-cover" id="detailCover">Cover</div>
+                            <button class="btn btn-blue" style="width: 100%;">Borrow / Read Online</button>
+                            <button class="btn btn-outline" style="width: 100%;">Add to List ▼</button>
+                        </div>
+                        
+                        <!-- Right: Info -->
+                        <div class="detail-right">
+                            <div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">An edition of this work (<span id="detailYearText"></span>)</div>
+                            <h1 class="detail-title" id="detailTitle">Book Title</h1>
+                            <div class="detail-author">by <span style="color: var(--brand-info);" id="detailAuthor">Author Name</span></div>
+                            
+                            <div class="detail-rating">
+                                ★★★★☆ 4.2 (128 ratings) · 450 Want to read · 89 Currently reading
+                            </div>
+                            
+                            <div class="detail-desc">
+                                <div id="detailDescEn">English description...</div>
+                                <div class="detail-desc-ru" id="detailDescRu">Russian description...</div>
+                            </div>
+                            
+                            <div class="detail-meta-grid">
+                                <div class="meta-box"><span>Publish Date</span><strong id="detailYear">1994</strong></div>
+                                <div class="meta-box"><span>Publisher</span><strong id="detailPublisher">Zebra Books</strong></div>
+                                <div class="meta-box"><span>Language</span><strong>English / Russian</strong></div>
+                                <div class="meta-box"><span>Pages</span><strong id="detailPages">349</strong></div>
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <span style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Subjects</span>
+                                <div class="detail-tags" id="detailTags" style="margin-top: 8px;">
+                                    <span class="tag">Literature</span> <span class="tag">Classic</span> <span class="tag">Fiction</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 5: TERMINAL SYSTEM -->
+            <section id="view-terminal" class="view-section">
+                <div class="glass-panel">
+                    <h2 class="panel-header">System Diagnostics & CI/CD Terminal</h2>
+                    <p style="margin-bottom: 20px;">Deploy hermetic testing suite into virtualized environment. Simulates GitHub Actions execution.</p>
+                    
+                    <button class="btn" id="initPipelineBtn" style="margin-bottom: 25px;">▶ Initialize QA Pipeline</button>
+
+                    <div class="terminal-wrapper">
+                        <div class="terminal-header">
+                            <div class="term-btn term-close"></div><div class="term-btn term-min"></div><div class="term-btn term-max"></div>
+                            <div style="margin-left: 15px; font-size: 12px; color: #666; font-family: var(--font-mono);">root@irminsul-guard-node-01:~</div>
+                        </div>
+                        <div class="terminal-body" id="termScreen">
+                            <span class="log-cmd">admin@akasha:~$</span> Awaiting execution command...<span class="type-cursor"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         8. APPLICATION LOGIC & DATA INJECTION (50 BOOKS DATABASE)
+         ========================================================================== -->
+    <script>
+        // Cukup ubah nilai properti 'cover' di bawah ini dengan nama file gambar buku kamu (misal: "buku1.jpg") 
+        // atau URL gambar aslinya. Jika kosong, otomatis memakai warna latar dan judul aslinya.
+        const bookDatabase = [
+            { id: 1, title: "Crime and Punishment", author: "Fyodor Dostoevsky", ddc: "891.73", bg: "#6b0000", cover: "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1678913606i/123251520.jpg", year: "1866", pages: "671", pub: "The Russian Messenger",
+              descEn: "An essential Russian literary masterpiece. It follows Rodion Raskolnikov, an impoverished former student in Saint Petersburg who formulates a plan to kill a corrupt pawnbroker to solve his financial problems.",
+              descRu: "Существенный шедевр русской литературы. В нем рассказывается о Родионе Раскольникове, бедном бывшем студенте из Санкт-Петербурга, который разрабатывает план убийства коррумпированной ростовщиницы, чтобы решить свои финансовые проблемы." },
+            { id: 2, title: "War and Peace", author: "Leo Tolstoy", ddc: "891.73", bg: "#4a2311", cover: "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1681127703i/125209426.jpg", year: "1869", pages: "1225", pub: "The Russian Messenger",
+              descEn: "A legendary Russian epic widely considered one of the pinnacles of world literature. It philosophically examines the French invasion of Russia through the eyes of five aristocratic Russian families.",
+              descRu: "Легендарный русский эпос, по общему признанию считающийся одной из вершин мировой литературы. В нем философски рассматривается вторжение Франции в Россию глазами пяти дворянских семей." },
+            { id: 3, title: "The Master and Margarita", author: "Mikhail Bulgakov", ddc: "891.73", bg: "#1a252c", cover: "https://m.media-amazon.com/images/I/A16dyqJRpnL._AC_UF1000,1000_QL80_.jpg", year: "1967", pages: "384", pub: "YMCA Press",
+              descEn: "A cult satirical novel where the Devil visits atheistic Soviet Moscow. It blends dark fantasy with sharp political critique against the Soviet regime.",
+              descRu: "Культовый сатирический роман, в котором Дьявол посещает атеистическую советскую Москву. Он сочетает в себе темное фэнтези с острой политической критикой советского режима." },
+            { id: 4, title: "Anna Karenina", author: "Leo Tolstoy", ddc: "891.73", bg: "#511810", cover: "https://www.hachettebookgroup.com/wp-content/uploads/2025/04/9781454959601.jpg?w=425", year: "1878", pages: "864", pub: "The Russian Messenger",
+              descEn: "Often cited as the greatest novel ever written. A tragic story exploring romance, infidelity, and the rigid social order of 19th-century feudal Russia.",
+              descRu: "Часто цитируется как величайший роман из когда-либо написанных. Трагическая история, исследующая романтику, измену и жесткий социальный порядок феодальной России XIX века." },
+            { id: 5, title: "The Brothers Karamazov", author: "Fyodor Dostoevsky", ddc: "891.73", bg: "#154360", cover: "https://covers.storytel.com/jpg-640/9782378078270.6c30376e-be65-4136-bb0c-06776eaa39cf?optimize=high&quality=70&width=600", year: "1880", pages: "796", pub: "The Russian Messenger",
+              descEn: "Dostoevsky's final masterpiece. A passionate philosophical novel deeply exploring faith, doubt, free will, and the moral responsibility of mankind.",
+              descRu: "Последний шедевр Достоевского. Страстный философский роман, глубоко исследующий веру, сомнение, свободу воли и моральную ответственность человечества." },
+            { id: 6, title: "Eugene Onegin", author: "Alexander Pushkin", ddc: "891.71", bg: "#0b5345", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEHHtFVda4a7x4BbJwO_Pm0jknL8RVZX7OOdExd3k_GK8nYKn_kYSjZ2aL&s=10", year: "1833", pages: "240", pub: "Alexander Smirdin",
+              descEn: "A classic novel in verse by the father of Russian literature, Alexander Pushkin. A foundational work that shaped almost all subsequent Russian fiction.",
+              descRu: "Классический роман в стихах основоположника русской литературы Александра Пушкина. Фундаментальное произведение, сформировавшее всю последующую российскую прозу." },
+            { id: 7, title: "Dead Souls", author: "Nikolai Gogol", ddc: "891.73", bg: "#424949", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSNrIttIHZHnBEP1s-LvHgpTz0FLi6AC57EvXlCk2ZQGDhii9BFr2Y7n04R&s=10", year: "1842", pages: "448", pub: "Moscow University Press",
+              descEn: "A dark comedy adventure following Chichikov as he travels across rural Russia buying 'dead souls' (deceased serfs still listed on tax census rolls).",
+              descRu: "Темная комедийная приключенческая история Чичикова, путешествующего по российской глубинке и скупающего «мертвые души» (крестьян, умерших до ревизии)." },
+            { id: 8, title: "Fathers and Sons", author: "Ivan Turgenev", ddc: "891.73", bg: "#616a6b", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgqpH_TBer1G7xQE2n_2qhYUmoZzwfXEsq1-P-dXRaYBvvGPUHQh9pS-ZS&s=10", year: "1862", pages: "244", pub: "The Russian Messenger",
+              descEn: "Depicts the generational conflict between the 1830s Russian liberals and the rising nihilist movement that challenged established traditions.",
+              descRu: "Изображает извечный конфликт поколений между русскими либералами 1830-х годов и зарождающимся нигилистическим движением." },
+            { id: 9, title: "The Cherry Orchard", author: "Anton Chekhov", ddc: "891.72", bg: "#922b21", cover: "https://covers.storytel.com/jpg-640/9781398813397.174256cb-fb4e-4297-9a3c-18e3742c7ec2?optimize=high&quality=70&width=600", year: "1904", pages: "112", pub: "Znanie",
+              descEn: "Chekhov's final theatrical play. It portrays the socioeconomic decline of the Russian aristocracy and the rise of the middle class at the dawn of the 20th century.",
+              descRu: "Последняя пьеса Чехова. В ней изображен социально-экономический упадок русской аристократии и подъем среднего класса на заре XX века." },
+            { id: 10, title: "Doctor Zhivago", author: "Boris Pasternak", ddc: "891.73", bg: "#0e6655", cover: "https://m.media-amazon.com/images/I/81V3IzoRK4L._UF1000,1000_QL80_.jpg", year: "1957", pages: "592", pub: "Feltrinelli",
+              descEn: "An epic romance following Yuri Zhivago, a physician and poet caught up in the dramatic turbulence of the Russian Revolution and Civil War.",
+              descRu: "Эпический роман о судьбе Юрия Живаго, врача и поэта, оказавшегося в водовороте русской революции и Гражданской войны." },
+            { id: 11, title: "The Idiot", author: "Fyodor Dostoevsky", ddc: "891.73", bg: "#1a5276", cover: "https://oslobooksindia.com/wp-content/uploads/2025/01/WhatsAppImage2023-09-11at2.58.22PM.jpg", year: "1869", pages: "615", pub: "The Russian Messenger",
+              descEn: "Explores what happens when Prince Myshkin, a man of unmatched goodness and innocence, returns to corrupt and materialistic Russian society.",
+              descRu: "Исследует судьбу князя Мышкина, человека необычайной душевной чистоты, попавшего в корыстное и безнравственное общество." },
+            { id: 12, title: "A Day in the Life of Ivan Denisovich", author: "A. Solzhenitsyn", ddc: "891.73", bg: "#7d6608", cover: "https://m.media-amazon.com/images/I/81sgZf7VlEL.jpg", year: "1962", pages: "182", pub: "Novy Mir",
+              descEn: "The first open exposure of the Soviet Gulag forced labor camp system, detailing a single day in the life of an ordinary prisoner.",
+              descRu: "Первое открытое произведение о советской системе лагерей ГУЛАГ, описывающее один день из жизни простого заключенного." },
+            { id: 13, title: "We", author: "Yevgeny Zamyatin", ddc: "891.73", bg: "#1c2833", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXy6OGlwfk9O7qkosr8kC4UYYIikcaEUgyTZ6u4weqVQ&s", year: "1924", pages: "256", pub: "E.P. Dutton",
+              descEn: "A pioneering dystopian novel written in post-revolutionary Russia, heavily influencing future masterpieces like Orwell's 1984.",
+              descRu: "Новаторский роман-антиутопия, написанный в послереволюционной России, оказавший огромное влияние на мировой жанр научной фантастики." },
+            { id: 14, title: "Lolita", author: "Vladimir Nabokov", ddc: "813.54", bg: "#76448a", cover: "https://m.media-amazon.com/images/I/71dfSg9HdoL._AC_UF1000,1000_QL80_.jpg", year: "1955", pages: "336", pub: "Olympia Press",
+              descEn: "Written by Russian emigrant Nabokov. Renowned for its brilliant prose style and intensely controversial narrative surrounding obsession.",
+              descRu: "Написано русским эмигрантом Набоковым. Известно своим блестящим стилем прозы и сложнейшим психологическим сюжетом." },
+            { id: 15, title: "Notes from Underground", author: "Fyodor Dostoevsky", ddc: "891.73", bg: "#273746", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn5aUyiiLdUl-mhhIVxT77t6FipvHJZv_PgBlVnQXUpghObkt-ILJeFWIC&s=10", year: "1864", pages: "136", pub: "Epoch",
+              descEn: "Considered one of the first existentialist novels, featuring the bitter, isolated monologue of an unnamed retired civil servant in St. Petersburg.",
+              descRu: "Считается одним из первых экзистенциальных романов, представляющий собой едкий и откровенный монолог отшельника из Петербурга." },
+            { id: 16, title: "Foundations of Library Science", author: "Richard E. Rubin", ddc: "020", bg: "#8e44ad", cover: "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1642110129i/60119140.jpg", year: "2015", pages: "648", pub: "Neal-Schuman",
+              descEn: "A fundamental textbook for Library and Information Science students, covering the history, ethics, and digital management of modern libraries.",
+              descRu: "Фундаментальный учебник для студентов библиотечно-информационных факультетов, охватывающий историю, этику и цифровое управление." },
+            { id: 17, title: "The Organization of Information", author: "Arlene G. Taylor", ddc: "025.3", bg: "#2980b9", cover: "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1387731993i/714165.jpg", year: "2017", pages: "512", pub: "Libraries Unlimited",
+              descEn: "Comprehensive guidance on how library catalog metadata and OPAC systems structure global information assets.",
+              descRu: "Подробное руководство о том, как метаданные каталогов и OPAC-системы структурируют информационные ресурсы." },
+            { id: 18, title: "Intro to Cataloging and Classification", author: "Bohdan Wynar", ddc: "025.3", bg: "#27ae60", cover: "https://m.media-amazon.com/images/I/81Qbl7l7UwS._AC_UF1000,1000_QL80_.jpg", year: "2006", pages: "600", pub: "Libraries Unlimited",
+              descEn: "Explores core cataloging standards including MARC21, RDA, and Dewey Decimal Classification (DDC) systems.",
+              descRu: "Исследует основные стандарты каталогизации, включая форматы MARC21, RDA и системы десятичной классификации Дьюи (DDC)." },
+            { id: 19, title: "Reference and Info Services", author: "Kay Ann Cassell", ddc: "025.5", bg: "#16a085", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToaA2DL3H1shE-mwvsBm784AmNjtv1iQAi1OaRLlyCJqsbEqMvuUqkRJUf&s=10", year: "2018", pages: "480", pub: "ALA Editions",
+              descEn: "Methodologies for effective reference services, user query negotiation, and database resource management in libraries.",
+              descRu: "Методологии эффективного справочного обслуживания, работы с запросами пользователей и управления базами данных." },
+            { id: 20, title: "Information Architecture", author: "Louis Rosenfeld", ddc: "025.04", bg: "#d35400", cover: "https://m.media-amazon.com/images/I/91mM8lOzugL._AC_UF1000,1000_QL80_.jpg", year: "2015", pages: "486", pub: "O'Reilly Media",
+              descEn: "Designing large-scale digital navigation systems, ontologies, and tagging frameworks for web libraries.",
+              descRu: "Проектирование крупномасштабных цифровых навигационных систем, онтологий и таксономий для веб-библиотек." },
+            { id: 21, title: "DDC Principles", author: "Melvil Dewey", ddc: "025.4", bg: "#c0392b", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQqiHxXI6TYyzWwQVe32GRQtipqV-cR632nZT88kMkIUPyeeA1oiizao-cg&s=10", year: "2011", pages: "250", pub: "OCLC",
+              descEn: "The guiding architecture of the Dewey Decimal Classification system, the heart of library indexing worldwide.",
+              descRu: "Руководящая архитектура системы классификации Дьюи, являющаяся основой библиотечной индексации по всему миру." },
+            { id: 22, title: "Library Management", author: "Robert D. Stueart", ddc: "025.1", bg: "#7f8c8d", cover: "https://m.media-amazon.com/images/I/611GsPZIW8L._AC_UF1000,1000_QL80_.jpg", year: "2012", pages: "537", pub: "Libraries Unlimited",
+              descEn: "Strategic management principles, governance policies, and financial controls for modern library operations.",
+              descRu: "Принципы стратегического менеджмента, политические регламенты и финансовый контроль для библиотечных систем." },
+            { id: 23, title: "Digital Preservation", author: "Marilyn Deegan", ddc: "025.8", bg: "#34495e", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTy_b1w-OZEOCZtgOO-8Ae-lNmNsVzF1RxPGDECdgFqVKsSnTSjp_E3xfY&s=10", year: "2006", pages: "245", pub: "Facet Publishing",
+              descEn: "Strategies for mitigating data corruption and ensuring long-term preservation of digital cultural heritage.",
+              descRu: "Стратегии предотвращения цифровой коррупции данных и обеспечения долгосрочной сохранности архивов." },
+            { id: 24, title: "Metadata for Info Management", author: "David Haynes", ddc: "025.3", bg: "#2c3e50", cover: "https://openlibrary.telkomuniversity.ac.id/uploads/book/cover/1519.jpg", year: "2004", pages: "288", pub: "Facet Publishing",
+              descEn: "Strategic approaches to metadata classification, schema validation, and taxonomy standards in security systems.",
+              descRu: "Стратегические подходы к классификации метаданных, валидации схем и стандартам таксономии." },
+            { id: 25, title: "Collection Development", author: "G. Edward Evans", ddc: "025.2", bg: "#e67e22", cover: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdY573yYgM469f3TveQczy9xtCWUVXVNGqeUWQhaXCOA&s", year: "2012", pages: "432", pub: "Libraries Unlimited",
+              descEn: "Acquisition workflows, patron evaluation, and lifecycle management for physical books and electronic resources.",
+              descRu: "Рабочие процессы комплектования, оценка потребностей читателей и управление жизненным циклом фондов." },
+            { id: 26, title: "Clean Architecture", author: "Robert C. Martin", ddc: "005.1", bg: "#1f2937", cover: "https://m.media-amazon.com/images/I/71stxGw9JgL._AC_UF1000,1000_QL80_.jpg", year: "2017", pages: "432", pub: "Prentice Hall",
+              descEn: "An essential software engineering text. Guides developers and QA specialists on structuring maintainable, clean code architectures.",
+              descRu: "Обязательная книга по программной инженерии. Руководит разработчиками и специалистами QA в проектировании чистой архитектуры." },
+            { id: 27, title: "The Pragmatic Programmer", author: "D. Thomas & A. Hunt", ddc: "005.1", bg: "#115e59", cover: "https://m.media-amazon.com/images/I/61ztlXgCmpL.jpg", year: "1999", pages: "352", pub: "Addison-Wesley",
+              descEn: "Practical software development philosophy covering coding best practices, debugging strategies, and automated testing.",
+              descRu: "Практическая философия разработки ПО, охватывающая лучшие практики написания кода, отладку и автоматизацию." },
+            { id: 28, title: "Automate the Boring Stuff", author: "Al Sweigart", ddc: "005.13", bg: "#1e3a8a", cover: "https://m.media-amazon.com/images/I/81S9vwXjScL._AC_UF1000,1000_QL80_.jpg", year: "2019", pages: "592", pub: "No Starch Press",
+              descEn: "Practical Python programming guide used extensively for building automation scripts like IrminsulGuard.",
+              descRu: "Практическое руководство по программированию на Python, используемое для создания скриптов автоматизации." },
+            { id: 29, title: "Software Testing Techniques", author: "Boris Beizer", ddc: "005.14", bg: "#581c87", cover: "https://m.media-amazon.com/images/I/71ZqHz849WL._AC_UF1000,1000_QL80_.jpg", year: "1990", pages: "508", pub: "Van Nostrand",
+              descEn: "Fundamental theories of test-case design, white-box testing, and quality assurance integration within SDLC.",
+              descRu: "Фундаментальные теории проектирования тестов, белого ящика и интеграции контроля качества в жизненный цикл ПО." },
+            { id: 30, title: "Continuous Delivery", author: "Jez Humble", ddc: "005.1", bg: "#7f1d1d", cover: "https://m.media-amazon.com/images/I/61URM5B90LL._UF1000,1000_QL80_.jpg", year: "2010", pages: "512", pub: "Addison-Wesley",
+              descEn: "Building automated CI/CD pipelines, from source code repository triggers to deployment on GitHub Actions.",
+              descRu: "Создание автоматизированных CI/CD конвейеров, от триггеров репозитория исходного кода до развертывания." },
+            { id: 31, title: "Site Reliability Engineering", author: "Niall Richard Murphy", ddc: "005.1", bg: "#14532d", cover: "", year: "2016", pages: "550", pub: "O'Reilly Media",
+              descEn: "Google's SRE practices addressing software fault tolerance, API response time limits, and automation.",
+              descRu: "Практики SRE от Google, посвященные отказоустойчивости программного обеспечения, ограничениям времени отклика API." },
+            { id: 32, title: "Design Patterns", author: "Erich Gamma (GoF)", ddc: "005.1", bg: "#9a3412", cover: "", year: "1994", pages: "395", pub: "Addison-Wesley",
+              descEn: "Reusable elements of object-oriented software design, including architectural blueprints like Page Object Model (POM).",
+              descRu: "Повторно используемые элементы объектно-ориентированного проектирования, включая шаблоны Page Object Model (POM)." },
+            { id: 33, title: "Refactoring", author: "Martin Fowler", ddc: "005.1", bg: "#0f766e", cover: "", year: "1999", pages: "431", pub: "Addison-Wesley",
+              descEn: "Techniques for improving the internal design and structure of existing code without altering its external behavior.",
+              descRu: "Техники улучшения внутреннего дизайна и структуры существующего кода без изменения его внешнего поведения." },
+            { id: 34, title: "The Phoenix Project", author: "Gene Kim", ddc: "658.4", bg: "#991b1b", cover: "", year: "2013", pages: "345", pub: "IT Revolution",
+              descEn: "A novel about IT, DevOps, and helping your business win by bridging development and QA operations.",
+              descRu: "Роман об IT, DevOps и о том, как помочь бизнесу победить, объединив разработку и операции контроля качества." },
+            { id: 35, title: "Selenium WebDriver Recipes", author: "Zhimin Zhan", ddc: "005.14", bg: "#1d4ed8", cover: "", year: "2018", pages: "280", pub: "Leanpub",
+              descEn: "Implementation patterns for cross-browser automated UI testing using Python and WebDriver bindings.",
+              descRu: "Паттерны реализации кроссбраузерного автоматизированного UI-тестирования с использованием Python." },
+            { id: 36, title: "Agile Testing", author: "Lisa Crispin", ddc: "005.14", bg: "#701a75", cover: "", year: "2009", pages: "576", pub: "Addison-Wesley",
+              descEn: "Comprehensive guide for integrating automated testing into fast-paced Agile sprint teams.",
+              descRu: "Комплексное руководство по интеграции автоматизированного тестирования в быстро меняющиеся команды Agile." },
+            { id: 37, title: "Python Crash Course", author: "Eric Matthes", ddc: "005.13", bg: "#312e81", cover: "", year: "2019", pages: "544", pub: "No Starch Press",
+              descEn: "Fast-paced introduction to Python programming. Serves as the backbone for Pytest and Requests libraries.",
+              descRu: "Быстрое введение в программирование на Python. Служит основой для библиотек Pytest и Requests." },
+            { id: 38, title: "Clean Code", author: "Robert C. Martin", ddc: "005.1", bg: "#1f2937", cover: "", year: "2008", pages: "464", pub: "Prentice Hall",
+              descEn: "Handbook of agile software craftsmanship focused on writing readable, testable, and maintainable code.",
+              descRu: "Справочник по гибкой разработке ПО, ориентированный на написание читаемого, тестируемого и поддерживаемого кода." },
+            { id: 39, title: "Pytest Framework Guide", author: "Brian Okken", ddc: "005.14", bg: "#2e3f5c", cover: "", year: "2017", pages: "256", pub: "Pragmatic Bookshelf",
+              descEn: "Leveraging Pytest fixtures, parameterized testing, and Data-Driven Testing (DDT) structures.",
+              descRu: "Использование фикстур Pytest, параметризованного тестирования и структур Data-Driven Testing (DDT)." },
+            { id: 40, title: "Designing Data-Intensive Apps", author: "Martin Kleppmann", ddc: "005.7", bg: "#432818", cover: "", year: "2017", pages: "616", pub: "O'Reilly",
+              descEn: "Principles and architectural patterns behind reliable, scalable, and maintainable data systems.",
+              descRu: "Принципы и архитектурные паттерны надежных, масштабируемых и обслуживаемых систем данных." },
+            { id: 41, title: "1984", author: "George Orwell", ddc: "823.91", bg: "#333333", cover: "", year: "1949", pages: "328", pub: "Secker & Warburg",
+              descEn: "A dystopian social science fiction novel warning against totalitarianism, mass surveillance, and historical manipulation.",
+              descRu: "Знаменитый роман-антиутопия, предупреждающий об опасностях тоталитаризма, массовой слежки и манипуляции историей." },
+            { id: 42, title: "To Kill a Mockingbird", author: "Harper Lee", ddc: "813.54", bg: "#b9770e", cover: "", year: "1960", pages: "281", pub: "J. B. Lippincott",
+              descEn: "Explores the roots of human behavior and institutional injustice in the American South through the eyes of a child.",
+              descRu: "Исследует корни человеческого поведения и институциональной несправедливости на американском Юге глазами ребенка." },
+            { id: 43, title: "The Great Gatsby", author: "F. Scott Fitzgerald", ddc: "813.52", bg: "#d4ac0d", cover: "", year: "1925", pages: "180", pub: "Scribner's",
+              descEn: "A critique of the American Dream during the Roaring Twenties, focusing on mystery, wealth, and unrequited love.",
+              descRu: "Критика американской мечты времен «бурных двадцатых», сосредоточенная на темах богатства, иллюзий и неразделенной любви." },
+            { id: 44, title: "One Hundred Years of Solitude", author: "G. Garcia Marquez", ddc: "863.64", bg: "#117864", cover: "", year: "1967", pages: "417", pub: "Editorial Sudamericana",
+              descEn: "A masterpiece of magical realism detailing seven generations of the Buendía family in the fictional town of Macondo.",
+              descRu: "Шедевр магического реализма, подробно описывающий семь поколений семьи Буэндиа в вымышленном городе Макондо." },
+            { id: 45, title: "Pride and Prejudice", author: "Jane Austen", ddc: "823.7", bg: "#a04000", cover: "", year: "1813", pages: "432", pub: "T. Egerton",
+              descEn: "A romantic comedy of manners exploring class divisions, upbringing, and matrimonial expectations in 19th-century Britain.",
+              descRu: "Романтическая комедия нравов, исследующая классовые различия, воспитание и брачные ожидания в Великобритании." },
+            { id: 46, title: "The Catcher in the Rye", author: "J.D. Salinger", ddc: "813.54", bg: "#922b21", cover: "", year: "1951", pages: "234", pub: "Little, Brown",
+              descEn: "An iconic psychological portrayal of teenage alienation, angst, and identity crisis experienced by Holden Caulfield.",
+              descRu: "Культовый психологический портрет подросткового отчуждения, тревоги и кризиса идентичности Холдена Колфилда." },
+            { id: 47, title: "The Hobbit", author: "J.R.R. Tolkien", ddc: "823.91", bg: "#1e8449", cover: "", year: "1937", pages: "310", pub: "George Allen & Unwin",
+              descEn: "A fantasy classic paving the way for Middle-earth lore, following Bilbo Baggins on an unexpected treasure journey.",
+              descRu: "Классика фэнтези, прокладывающая путь к легендариуму Средиземья, следуя за Бильбо Бэггинсом в неожиданном походе." },
+            { id: 48, title: "Fahrenheit 451", author: "Ray Bradbury", ddc: "813.54", bg: "#cb4335", cover: "", year: "1953", pages: "249", pub: "Ballantine Books",
+              descEn: "A chilling futuristic vision where books are outlawed and specialized firemen burn any discovered literature.",
+              descRu: "Мрачное футуристическое видение будущего, где книги запрещены законом, а пожарные сжигают любую обнаруженную литературу." },
+            { id: 49, title: "Moby-Dick", author: "Herman Melville", ddc: "813.3", bg: "#2874a6", cover: "", year: "1851", pages: "635", pub: "Harper & Brothers",
+              descEn: "An epic seafaring adventure detailing Captain Ahab's obsessive, self-destructive hunt for the giant white whale.",
+              descRu: "Эпическое морское приключение, подробно описывающее одержимую погоню капитана Ахава за гигантским белым китом." },
+            { id: 50, title: "Frankenstein", author: "Mary Shelley", ddc: "823.7", bg: "#212f3c", cover: "", year: "1818", pages: "280", pub: "Lackington",
+              descEn: "A pioneering sci-fi gothic novel exploring the ethical boundaries of creation and the responsibilities of science.",
+              descRu: "Новаторский готический научно-фантастический роман, исследующий этические границы творения и ответственность науки." }
+        ];
+
+        class IrminsulApp {
+            constructor() {
+                this.navItems = document.querySelectorAll('.nav-item');
+                this.views = document.querySelectorAll('.view-section');
+                this.catalogGrid = document.getElementById('catalogGrid');
+                this.btnGrid = document.getElementById('btnGrid');
+                this.btnList = document.getElementById('btnList');
+                this.backBtn = document.getElementById('backToCatalogBtn');
+                
+                this.initSplash();
+                this.initNavigation();
+                this.initCatalogControls();
+                this.renderCatalog();
+                this.initTerminal();
+            }
+
+            initSplash() {
+                document.getElementById('enterSystemBtn').addEventListener('click', () => {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    setTimeout(() => { document.getElementById('appLayout').classList.add('visible'); }, 800);
+                });
+            }
+
+            initNavigation() {
+                this.navItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const targetId = e.currentTarget.getAttribute('data-target');
+                        this.switchView(targetId, e.currentTarget);
+                    });
+                });
+                
+                this.backBtn.addEventListener('click', () => {
+                    this.switchView('view-catalog', document.getElementById('navCatalogBtn'));
+                });
+            }
+
+            switchView(targetId, navElement) {
+                this.navItems.forEach(nav => nav.classList.remove('active'));
+                if(navElement) navElement.classList.add('active');
+                
+                this.views.forEach(view => {
+                    view.classList.remove('active-view');
+                    if(view.id === targetId) setTimeout(() => view.classList.add('active-view'), 10);
+                });
+            }
+
+            initCatalogControls() {
+                this.btnGrid.addEventListener('click', () => {
+                    this.btnGrid.classList.add('active');
+                    this.btnList.classList.remove('active');
+                    this.catalogGrid.classList.remove('list-view');
+                });
+                this.btnList.addEventListener('click', () => {
+                    this.btnList.classList.add('active');
+                    this.btnGrid.classList.remove('active');
+                    this.catalogGrid.classList.add('list-view');
+                });
+            }
+
+            renderCatalog() {
+                this.catalogGrid.innerHTML = '';
+                bookDatabase.forEach(book => {
+                    const card = document.createElement('div');
+                    card.className = 'book-card';
+                    
+                    // Cek jika properti cover diisi, gunakan sebagai background image. Jika kosong, gunakan warna latar polos.
+                    let coverStyle = `background: ${book.bg}; color: #fff;`;
+                    let coverInner = `<span style="font-size: 11px; padding: 10px; text-align: center; z-index: 2;">${book.title}</span><div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);"></div>`;
+                    
+                    if (book.cover && book.cover.trim() !== "") {
+                        coverStyle = `background: url('${book.cover}') no-repeat center center; background-size: cover;`;
+                        coverInner = "";
+                    }
+
+                    card.innerHTML = `
+                        <div class="book-cover" style="${coverStyle}">${coverInner}</div>
+                        <div>
+                            <div class="book-title">${book.title}</div>
+                            <div class="book-author">${book.author}</div>
+                        </div>
+                        <div class="book-ddc">DDC: ${book.ddc}</div>
+                    `;
+                    card.addEventListener('click', () => this.openBookDetail(book));
+                    this.catalogGrid.appendChild(card);
+                });
+            }
+
+            openBookDetail(book) {
+                const detailCover = document.getElementById('detailCover');
+                if (book.cover && book.cover.trim() !== "") {
+                    detailCover.style.background = `url('${book.cover}') no-repeat center center`;
+                    detailCover.style.backgroundSize = "cover";
+                    detailCover.innerText = "";
+                } else {
+                    detailCover.style.background = book.bg;
+                    detailCover.style.color = '#fff';
+                    detailCover.innerText = book.title;
+                }
+                
+                document.getElementById('detailTitle').innerText = book.title;
+                document.getElementById('detailAuthor').innerText = book.author;
+                document.getElementById('detailYearText').innerText = book.year;
+                
+                document.getElementById('detailDescEn').innerText = book.descEn;
+                document.getElementById('detailDescRu').innerText = book.descRu;
+                
+                document.getElementById('detailYear').innerText = book.year;
+                document.getElementById('detailPublisher').innerText = book.pub;
+                document.getElementById('detailPages').innerText = book.pages;
+
+                const tagsDiv = document.getElementById('detailTags');
+                let tagHTML = '';
+                if(book.id <= 15) tagHTML = '<span class="tag">Russian Literature</span> <span class="tag">Classic</span>';
+                else if(book.id <= 25) tagHTML = '<span class="tag">Library Science</span> <span class="tag">Education</span>';
+                else if(book.id <= 40) tagHTML = '<span class="tag">IT Engineering</span> <span class="tag">QA Automation</span>';
+                else tagHTML = '<span class="tag">Global Classic</span> <span class="tag">Fiction</span>';
+                tagsDiv.innerHTML = tagHTML;
+
+                this.views.forEach(view => view.classList.remove('active-view'));
+                setTimeout(() => document.getElementById('view-book-detail').classList.add('active-view'), 10);
+            }
+
+            initTerminal() {
+                const btn = document.getElementById('initPipelineBtn');
+                const screen = document.getElementById('termScreen');
+                
+                const execSequence = [
+                    { t: "Mounting secure Docker environment...", c: "log-sys", d: 800 },
+                    { t: "Привет, Erland! Автоматизированная система контроля качества активирована.", c: "log-sys", d: 1200 },
+                    { t: "[INFO] Disconnecting live external APIs. Switching to hermetic mock network.", c: "log-info", d: 800 },
+                    { t: "[MOCK] Loaded 50 mock bibliographic records from data/mock_books.json.", c: "log-info", d: 600 },
+                    { t: "Executing Pytest Test Runner (pytest-xdist: 4 workers)...", c: "log-cmd", d: 1000 },
+                    { t: "============================= test session starts ==============================", c: "", d: 200 },
+                    { t: "platform linux -- Python 3.11.4, pytest-8.0.0, pluggy-1.4.0", c: "", d: 200 },
+                    { t: "plugins: html-4.0.0, xdist-3.5.0, responses-0.25.0", c: "", d: 200 },
+                    { t: "collected 50 items", c: "", d: 800 },
+                    { t: "tests/test_api_metadata.py .........................                     [ 50%]", c: "log-ok", d: 1500 },
+                    { t: "tests/test_ui_search.py .........................                        [100%]", c: "log-ok", d: 1200 },
+                    { t: "============================== 50 passed in 4.12s ==============================", c: "log-ok", d: 500 },
+                    { t: "[SUCCESS] MARC21 & DDC formatting zero anomalies detected.", c: "log-ok", d: 400 },
+                    { t: "Pipeline execution complete. HTML Report generated: /assets/report.html", c: "log-sys", d: 600 }
+                ];
+
+                btn.addEventListener('click', () => {
+                    btn.disabled = true;
+                    btn.innerHTML = 'Executing Pipeline...';
+                    screen.innerHTML = `<span class="log-cmd">admin@akasha:~$</span> pytest tests/ -n auto --html=report.html<br><br>`;
+                    
+                    let i = 0;
+                    const runLine = () => {
+                        if (i < execSequence.length) {
+                            const step = execSequence[i];
+                            const span = document.createElement('div');
+                            span.className = step.c; span.innerHTML = step.t;
+                            screen.appendChild(span);
+                            screen.scrollTop = screen.scrollHeight;
+                            i++;
+                            setTimeout(runLine, step.d);
+                        } else {
+                            screen.innerHTML += `<br><span class="log-cmd">admin@akasha:~$</span> Awaiting next command...<span class="type-cursor"></span>`;
+                            screen.scrollTop = screen.scrollHeight;
+                            btn.disabled = false;
+                            btn.innerHTML = '↻ Restart Pipeline';
+                        }
+                    };
+                    setTimeout(runLine, 500);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { window.app = new IrminsulApp(); });
+    </script>
+</body>
+</html>
