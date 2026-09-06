@@ -5,13 +5,14 @@
 ![Pytest](https://img.shields.io/badge/Pytest-v8.x-orange)
 ![Build Passing](https://img.shields.io/badge/Build-Passing-brightgreen)
 
+
+An automated QA testing suite designed for validating bibliographic catalog metadata and API endpoint reliability for digital library systems.
+
 <div align="center" style="margin: 30px 0;">
   <a href="https://erlandfauzan.github.io/IrminsulGuard/" target="_blank">
     <img src="https://img.shields.io/badge/🚀_Explore_Live_Interactive_Demo-Click_Here-ff7eb3?style=for-the-badge&logo=githubpages&logoColor=white" alt="Live Demo">
   </a>
 </div>
-
-An automated QA testing suite designed for validating bibliographic catalog metadata and API endpoint reliability for digital library systems.
 
 ---
 
